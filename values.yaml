@@ -7,7 +7,7 @@ replicaCount: 1
 # imagePullSecrets:
 
 image:
-  repository: stelford/nfs-provisioner-metrics
+  repository: seasonedidiot/nfs-provisioner-metrics
   tag: v1.0.0
   pullPolicy: IfNotPresent
 
