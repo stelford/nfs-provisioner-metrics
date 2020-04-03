@@ -1,0 +1,71 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ template "nfs-provisioner.fullname" . }}
+  labels:
+    app: {{ template "nfs-provisioner.name" . }}
+    chart: {{ template "nfs-provisioner.chart" . }}
+    heritage: {{ .Release.Service }}
+    release: {{ .Release.Name }}
+spec:
+  type: {{ .Values.service.type }}
+  ports:
+    - port: {{ .Values.service.nfsPort }}
+      targetPort: nfs
+      protocol: TCP
+      name: nfs
+    - port: {{ .Values.service.nfsPort }}
+      targetPort: nfs-udp
+      protocol: UDP
+      name: nfs-udp
+    - port: {{ .Values.service.nlockmgrPort }}
+      targetPort: nlockmgr
+      protocol: TCP
+      name: nlockmgr
+    - port: {{ .Values.service.nlockmgrPort }}
+      targetPort: nlockmgr-udp
+      protocol: UDP
+      name: nlockmgr-udp
+    - port: {{ .Values.service.mountdPort }}
+      targetPort: mountd
+      protocol: TCP
+      name: mountd
+    - port: {{ .Values.service.mountdPort }}
+      targetPort: mountd-udp
+      protocol: UDP
+      name: mountd-udp
+    - port: {{ .Values.service.rquotadPort }}
+      targetPort: rquotad
+      protocol: TCP
+      name: rquotad
+    - port: {{ .Values.service.rquotadPort }}
+      targetPort: rquotad-udp
+      protocol: UDP
+      name: rquotad-udp
+    - port: {{ .Values.service.rpcbindPort }}
+      targetPort: rpcbind
+      protocol: TCP
+      name: rpcbind
+    - port: {{ .Values.service.rpcbindPort }}
+      targetPort: rpcbind-udp
+      protocol: UDP
+      name: rpcbind-udp
+    - port: {{ .Values.service.statdPort }}
+      targetPort: statd
+      protocol: TCP
+      name: statd
+    - port: {{ .Values.service.statdPort }}
+      targetPort: statd-udp
+      protocol: UDP
+      name: statd-udp
+    - port: {{ .Values.service.metricsPort }}
+      targetPort: {{ .Values.service.metricsPort }}
+      protocol: TCP
+      name: metrics
+  {{- if .Values.service.externalIPs }}
+  externalIPs:
+    {{- toYaml .Values.service.externalIPs | nindent 4 }}
+  {{- end }}
+  selector:
+    app: {{ template "nfs-provisioner.name" . }}
+    release: {{ .Release.Name }}
