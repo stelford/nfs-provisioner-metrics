@@ -30,6 +30,16 @@ spec:
       imagePullSecrets:
         {{- toYaml .Values.imagePullSecrets | nindent 8 }}
       {{- end }}
+      affinity:
+        podAntiAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+          - labelSelector:
+              matchExpressions:
+              - key: app
+                operator: In
+                values:
+                - {{ template "nfs-provisioner.name" . }}
+            topologyKey: "kubernetes.io/hostname"
       #initContainers:
       #- name: install-config
       #  image: alpine
@@ -92,11 +102,10 @@ spec:
         lifecycle:
           postStart:
             exec:
-              command: 
-                - "sh"
-                - "-c"
-                - >
-                  cp -f /tmp/ganesha/ganesha.conf /export/vfs.conf
+              command: ["/bin/sh", "-c", "cp -f /tmp/ganesha/ganesha.conf /export/vfs.conf"]
+          preStop:
+            exec:
+              command: ["/bin/sh", "-c", "rm -f /var/run/dbus/pid"]
         env:
           - name: POD_IP
             valueFrom:
@@ -108,7 +117,6 @@ spec:
             valueFrom:
               fieldRef:
                 fieldPath: metadata.namespace
-
         volumeMounts:
           - name: data
             mountPath: /export
@@ -120,6 +128,58 @@ spec:
         resources:
           {{- toYaml . | nindent 12 }}
         {{- end }}
+
+
+      - name: sample-controller
+        command: ["/usr/local/bin/python3"]
+        args: ["/app/main.py"]
+        image: seasonedidiot/nfs-leader:94aa2649274
+        imagePullPolicy: Always
+        #ports:
+        #- containerPort: 80
+        lifecycle:
+          postStart:
+            exec:
+              command: ["/usr/local/bin/python3", "/app/create_service.py"]
+          preStop:
+            exec:
+              command: ["/usr/local/bin/python3", "/app/delete_service.py"]
+        env:
+        - name: POD
+          valueFrom:
+            fieldRef:
+              fieldPath: metadata.name
+        - name: NAMESPACE
+          valueFrom:
+            fieldRef:
+              fieldPath: metadata.namespace
+        resources:
+          requests:
+            memory: "64Mi"
+            cpu: "50m"
+          limits:
+            memory: "128Mi"
+            cpu: "100m"
+        volumeMounts:
+          - name: data
+            mountPath: /export
+
+      - name: logger
+        command: ["/usr/bin/tail"]
+        args: ["-f","/export/ganesha.log"]
+        image: seasonedidiot/nfs-leader:94aa2649274
+        imagePullPolicy: Always
+        resources:
+          requests:
+            memory: "64Mi"
+            cpu: "50m"
+          limits:
+            memory: "128Mi"
+            cpu: "100m"
+        volumeMounts:
+          - name: data
+            mountPath: /export
+
       - name: gmetrics
         command: ["/usr/bin/python3"]
         args: ["/ganesha_exporter"]

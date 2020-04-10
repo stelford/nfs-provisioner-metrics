@@ -2,13 +2,13 @@
 # This is a YAML-formatted file.
 # Declare variables to be passed into your templates.
 
-replicaCount: 1
+replicaCount: 3
 
 # imagePullSecrets:
 
 image:
   repository: seasonedidiot/nfs-provisioner-metrics
-  tag: v1.0.1
+  tag: c302e4b6d33
   pullPolicy: IfNotPresent
 
 # For a list of available arguments
