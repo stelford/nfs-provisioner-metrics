@@ -54,6 +54,10 @@ spec:
         command: ["/nfs-provisioner"]
         image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
         imagePullPolicy: {{ .Values.image.pullPolicy }}
+        securityContext:
+          privileged: true
+          capabilities:
+            add: ["SYS_ADMIN", "SETPCAP"]
         ports:
           - name: nfs
             containerPort: 2049
@@ -129,14 +133,11 @@ spec:
           {{- toYaml . | nindent 12 }}
         {{- end }}
 
-
-      - name: sample-controller
+      - name: controller
         command: ["/usr/local/bin/python3"]
         args: ["/app/main.py"]
-        image: seasonedidiot/nfs-leader:94aa2649274
+        image: seasonedidiot/nfs-leader:9bbb274fe17
         imagePullPolicy: Always
-        #ports:
-        #- containerPort: 80
         lifecycle:
           postStart:
             exec:
@@ -167,7 +168,7 @@ spec:
       - name: logger
         command: ["/usr/bin/tail"]
         args: ["-f","/export/ganesha.log"]
-        image: seasonedidiot/nfs-leader:94aa2649274
+        image: seasonedidiot/nfs-leader:9bbb274fe17
         imagePullPolicy: Always
         resources:
           requests:
@@ -179,6 +180,34 @@ spec:
         volumeMounts:
           - name: data
             mountPath: /export
+
+      - name: rsyncd 
+        command: ["/usr/bin/rsync"]
+        #args: ["--daemon", "--no-detach", "-v", "--config", "/rsync.conf"]
+        args: ["--daemon", "--no-detach", "-v"]
+        image: seasonedidiot/nfs-leader:9bbb274fe17
+        imagePullPolicy: Always
+        ports:
+        - name: rsyncd
+          containerPort: 873
+          hostPort: 873
+          protocol: TCP
+        lifecycle:
+          postStart:
+            exec:
+              command: ["/bin/sh", "-c", "cp -f /tmp/rsyncd/rsyncd.conf /etc/rsyncd.conf"]
+        resources:
+          requests:
+            memory: "64Mi"
+            cpu: "50m"
+          limits:
+            memory: "128Mi"
+            cpu: "100m"
+        volumeMounts:
+          - name: data
+            mountPath: /export
+          - name: {{ template "nfs-provisioner.fullname" . }}-rsync-config
+            mountPath: /tmp/rsyncd
 
       - name: gmetrics
         command: ["/usr/bin/python3"]
@@ -215,6 +244,12 @@ spec:
              items:
               - key: config
                 path: ganesha.conf
+        - name: {{ template "nfs-provisioner.fullname" . }}-rsync-config
+          configMap:
+             name: {{ template "nfs-provisioner.fullname" . }}-config
+             items:
+              - key: rsync_config
+                path: rsyncd.conf
       {{- if not .Values.persistence.enabled }}
         - name: data
           emptyDir: {}

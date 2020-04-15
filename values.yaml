@@ -17,7 +17,7 @@ extraArgs: {}
   # device-based-fsids: false
 
 service:
-  type: NodePort
+  type: ClusterIP
 
   nfsPort: 2049
   nlockmgrPort: 32803
