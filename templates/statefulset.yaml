@@ -40,24 +40,12 @@ spec:
                 values:
                 - {{ template "nfs-provisioner.name" . }}
             topologyKey: "kubernetes.io/hostname"
-      #initContainers:
-      #- name: install-config
-      #  image: alpine
-      #  command: ['sh','-c', 'cp -f /tmp/ganesha/ganesha.conf /export/vfs.conf']
-      #  volumeMounts:
-      #  - name: {{ template "nfs-provisioner.fullname" . }}-config
-      #    mountPath: /tmp/ganesha
-      #  - name: data
-      #    mountPath: /export
+
       containers:
       - name: {{ .Chart.Name }}
         command: ["/nfs-provisioner"]
         image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
         imagePullPolicy: {{ .Values.image.pullPolicy }}
-        securityContext:
-          privileged: true
-          capabilities:
-            add: ["SYS_ADMIN", "SETPCAP"]
         ports:
           - name: nfs
             containerPort: 2049
@@ -98,11 +86,6 @@ spec:
           - name: metrics
             containerPort: 9587
             protocol: TCP
-        securityContext:
-          capabilities:
-            add:
-              - DAC_READ_SEARCH
-              - SYS_RESOURCE
         lifecycle:
           postStart:
             exec:
@@ -183,7 +166,6 @@ spec:
 
       - name: rsyncd 
         command: ["/usr/bin/rsync"]
-        #args: ["--daemon", "--no-detach", "-v", "--config", "/rsync.conf"]
         args: ["--daemon", "--no-detach", "-v"]
         image: seasonedidiot/nfs-leader:9bbb274fe17
         imagePullPolicy: Always
@@ -222,6 +204,7 @@ spec:
         volumeMounts:
         - mountPath: /var/run/dbus
           name: var-run
+
       {{- with .Values.nodeSelector }}
       nodeSelector:
         {{- toYaml . | nindent 8 }}
